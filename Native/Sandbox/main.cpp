@@ -6,7 +6,8 @@ float y = 0;
 void MyRender(float deltaTime)
 {
     y += deltaTime * 0.25f;
-   LeafDraw::Line(-1, y, 0, 0);
+    LeafDraw::Line(-1, y, 0, 0);
+    LeafDraw::Text("Hello world!");
 }
 
 int main()

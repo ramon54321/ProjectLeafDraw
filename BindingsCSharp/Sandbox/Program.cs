@@ -9,6 +9,7 @@ namespace Sandbox
             Draw.AddRenderFunction((float deltaTime) =>
             {
                 Draw.Line(0, 0, 0.5f, 0.5f);
+                Draw.TextRight(0, 0, "Hello from the other side!");
             });
             Draw.StartContext(new Draw.ContextOptions()
             {
@@ -18,6 +19,7 @@ namespace Sandbox
                 xMax = 1,
                 yMin = 1,
                 yMax = -1,
+                fontSize = 24,
             });
         }
     }
