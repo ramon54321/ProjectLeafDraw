@@ -1,6 +1,8 @@
 #include "LeafDraw.hpp"
 #include "iostream"
 
+using namespace std;
+
 float y = 0;
 
 void MyRender(float deltaTime)
@@ -9,7 +11,12 @@ void MyRender(float deltaTime)
 //    LeafDraw::Line(-1, y, 0, 0);
 //    LeafDraw::TextCenter(0, 0, "Hello world!");
 //    LeafDraw::Dot(0, 0);
-    LeafDraw::Vector(0, 0, 0.25f, 0.f);
+    auto mousePos = LeafDraw::GetMouseWorldPosition();
+    if (LeafDraw::GetKeyHold(SDL_SCANCODE_5) && LeafDraw::GetMouseWorldPosition().x < 0)
+    {
+        LeafDraw::Vector(0, 0, 0.25f, 0.f);
+    }
+
 }
 
 int main()

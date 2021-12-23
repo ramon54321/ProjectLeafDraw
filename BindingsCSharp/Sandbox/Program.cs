@@ -29,9 +29,12 @@ namespace Sandbox
                 Draw.TextRight(0, 0, "Hello from the other side!");
                 Draw.Dot(0, -0.1f);
                 Draw.Dot(0, -0.2f, 8);
-                Draw.SetColor(Red);
-                Draw.Dot(0, -0.4f, 8);
-                Draw.Vector(-1, -1, 0, -0.25f);
+                if (Draw.GetKeyHold(Draw.SdlScancode.SdlScancode5) && Draw.GetMouseWorldPosition().x < 0)
+                {
+                    Draw.SetColor(Red);
+                    Draw.Dot(0, -0.4f, 8);
+                    Draw.Vector(-1, -1, 0, -0.25f);
+                }
             });
             Draw.StartContext(new Draw.ContextOptions()
             {

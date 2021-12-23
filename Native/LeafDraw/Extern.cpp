@@ -19,17 +19,15 @@ namespace LeafDraw
     static float _ySpread;
     static float _arrowHeadSize;
 
+    static float _mouseX;
+    static float _mouseY;
+    static const Uint8* _scancodeStates;
+
     static vector <RenderFunction> _renderFunctions;
     static SDL_Renderer* _renderer;
     static TTF_Font* _font;
 
     static SDL_Color _color;
-
-    struct Point
-    {
-        float x;
-        float y;
-    };
 
     Point ScreenToWorld(Point point)
     {
@@ -121,6 +119,7 @@ namespace LeafDraw
             int windowPixelWidth;
             int windowPixelHeight;
             SDL_GetRendererOutputSize(_renderer, &windowPixelWidth, &windowPixelHeight);
+            auto scaling = windowPixelHeight / contextOptions.height;
             contextOptions.width = windowPixelWidth;
             contextOptions.height = windowPixelHeight;
             _contextOptions = contextOptions;
@@ -128,6 +127,7 @@ namespace LeafDraw
             auto yDiff = _contextOptions.yMax - _contextOptions.yMin;
             _xSpread = (float)_contextOptions.width / xDiff;
             _ySpread = (float)_contextOptions.height / yDiff;
+
             _arrowHeadSize = min(abs(xDiff), abs(yDiff)) * 0.01f;
 
             SetColor(SDL_Color {210,210,210,255 });
@@ -139,6 +139,15 @@ namespace LeafDraw
                 auto currentFrameElapsedTicks = SDL_GetTicks();
                 auto deltaSeconds = (float)(currentFrameElapsedTicks - lastFrameElapsedTicks) / 1000.f;
                 lastFrameElapsedTicks = currentFrameElapsedTicks;
+
+                int mouseX;
+                int mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                auto mouseWorldPoint = ScreenToWorld({(float)mouseX * scaling, (float)mouseY * scaling});
+                _mouseX = mouseWorldPoint.x;
+                _mouseY = mouseWorldPoint.y;
+
+                _scancodeStates = SDL_GetKeyboardState(NULL);
 
                 SDL_SetRenderDrawColor(_renderer, 10, 10, 10, 0);
                 SDL_RenderClear(_renderer);
@@ -247,6 +256,16 @@ namespace LeafDraw
 
             SDL_FreeSurface(surface);
             SDL_DestroyTexture(texture);
+        }
+
+        Point GetMouseWorldPosition()
+        {
+            return { _mouseX, _mouseY };
+        }
+
+        bool GetKeyHold(SDL_Scancode scancode)
+        {
+            return _scancodeStates[scancode];
         }
     }
 }
