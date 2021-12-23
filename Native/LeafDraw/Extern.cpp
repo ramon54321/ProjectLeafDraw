@@ -8,6 +8,7 @@
 #include <SDL_ttf.h>
 #include <SDL2_gfxPrimitives.h>
 #include "iostream"
+#include "math.h"
 
 using namespace std;
 
@@ -16,6 +17,7 @@ namespace LeafDraw
     static ContextOptions _contextOptions;
     static float _xSpread;
     static float _ySpread;
+    static float _arrowHeadSize;
 
     static vector <RenderFunction> _renderFunctions;
     static SDL_Renderer* _renderer;
@@ -47,6 +49,35 @@ namespace LeafDraw
         };
     }
 
+    Point VectorRotate(Point point, float angle)
+    {
+        return
+        {
+            .x = point.x * cos(angle) - point.y * sin(angle),
+            .y = point.x * sin(angle) + point.y * cos(angle),
+        };
+    }
+
+    float VectorMagnitude(Point point)
+    {
+        return sqrt(point.x * point.x + point.y * point.y);
+    }
+
+    Point VectorScale(Point point, float scale)
+    {
+        return
+        {
+            .x = point.x * scale,
+            .y = point.y * scale,
+        };
+    }
+
+    Point VectorNormalize(Point point)
+    {
+        auto magnitude = VectorMagnitude(point);
+        return VectorScale(point, 1.f / magnitude);
+    }
+
     extern "C"
     {
         void AddRenderFunction(RenderFunction renderFunction)
@@ -70,8 +101,8 @@ namespace LeafDraw
                 return 2;
             }
 
-            _font = TTF_OpenFont("/Library/Fonts/Arial Unicode.ttf", contextOptions.fontSize);
-            if (_font == NULL)
+            _font = TTF_OpenFont("/Library/Fonts/Arial Unicode.ttf", (int32_t)contextOptions.fontSize);
+            if (_font == nullptr)
             {
                 cout << "TTF Font Error" << endl;
                 cout << TTF_GetError() << endl;
@@ -95,17 +126,18 @@ namespace LeafDraw
             _contextOptions = contextOptions;
             auto xDiff = _contextOptions.xMax - _contextOptions.xMin;
             auto yDiff = _contextOptions.yMax - _contextOptions.yMin;
-            _xSpread = _contextOptions.width / xDiff;
-            _ySpread = _contextOptions.height / yDiff;
+            _xSpread = (float)_contextOptions.width / xDiff;
+            _ySpread = (float)_contextOptions.height / yDiff;
+            _arrowHeadSize = min(abs(xDiff), abs(yDiff)) * 0.01f;
 
-            _color = SDL_Color {210,210,210,0 };
+            SetColor(SDL_Color {210,210,210,255 });
 
             auto lastFrameElapsedTicks = SDL_GetTicks();
             auto isRunning = true;
             while (isRunning)
             {
                 auto currentFrameElapsedTicks = SDL_GetTicks();
-                auto deltaSeconds = (currentFrameElapsedTicks - lastFrameElapsedTicks) / 1000.f;
+                auto deltaSeconds = (float)(currentFrameElapsedTicks - lastFrameElapsedTicks) / 1000.f;
                 lastFrameElapsedTicks = currentFrameElapsedTicks;
 
                 SDL_SetRenderDrawColor(_renderer, 10, 10, 10, 0);
@@ -147,55 +179,71 @@ namespace LeafDraw
         {
             auto mappedPoint0 = WorldToScreen({x0, y0});
             auto mappedPoint1 = WorldToScreen({x1, y1});
-            aalineRGBA(_renderer, mappedPoint0.x, mappedPoint0.y, mappedPoint1.x, mappedPoint1.y, 255, 255, 255, 255);
+            aalineRGBA(_renderer, (int16_t)mappedPoint0.x, (int16_t)mappedPoint0.y, (int16_t)mappedPoint1.x, (int16_t)mappedPoint1.y, _color.r, _color.g, _color.b, _color.a);
         }
 
-        void TextLeft(float x, float y, char* text)
+        void Vector(float x0, float y0, float x1, float y1)
+        {
+            Line(x0, y0, x1, y1);
+            auto reverseNormalized = VectorScale(VectorNormalize({x1 - x0, y1 - y0 }), -_arrowHeadSize);
+            auto leftHead = VectorRotate(reverseNormalized, M_PI_4);
+            auto rightHead = VectorRotate(reverseNormalized, -M_PI_4);
+            Line(x1, y1, x1 + leftHead.x, y1 + leftHead.y);
+            Line(x1, y1, x1 + rightHead.x, y1 + rightHead.y);
+        }
+
+        void Dot(float x, float y, float radius)
+        {
+            auto mappedPoint = WorldToScreen({x, y});
+            filledEllipseRGBA(_renderer, (int16_t)mappedPoint.x, (int16_t)mappedPoint.y, (int16_t)radius, (int16_t)radius, _color.r, _color.g, _color.b, _color.a);
+        }
+
+        void TextLeft(float x, float y, const char* text)
         {
             auto surface = TTF_RenderText_Solid(_font, text, _color);
             auto texture = SDL_CreateTextureFromSurface(_renderer, surface);
 
             int width;
             int height;
-            SDL_QueryTexture(texture, NULL, NULL, &width, &height);
+            SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
 
             auto mappedPoint = WorldToScreen({x, y});
-            auto destinationRect = SDL_Rect { (int)mappedPoint.x, (int)mappedPoint.y - height/2,width,height };
-            SDL_RenderCopy(_renderer, texture, NULL, &destinationRect);
+            auto destinationRect = SDL_Rect { (int32_t)mappedPoint.x, (int32_t)mappedPoint.y - height/2,width,height };
+            SDL_RenderCopy(_renderer, texture, nullptr, &destinationRect);
 
             SDL_FreeSurface(surface);
             SDL_DestroyTexture(texture);
         }
 
-        void TextRight(float x, float y, char* text)
+        void TextRight(float x, float y, const char* text)
         {
             auto surface = TTF_RenderText_Solid(_font, text, _color);
             auto texture = SDL_CreateTextureFromSurface(_renderer, surface);
 
             int width;
             int height;
-            SDL_QueryTexture(texture, NULL, NULL, &width, &height);
+            SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
 
             auto mappedPoint = WorldToScreen({x, y});
-            auto destinationRect = SDL_Rect { (int)mappedPoint.x - width, (int)mappedPoint.y - height/2,width,height };
-            SDL_RenderCopy(_renderer, texture, NULL, &destinationRect);
+            auto destinationRect = SDL_Rect { (int32_t)mappedPoint.x - width, (int32_t)mappedPoint.y - height/2,width,height };
+            SDL_RenderCopy(_renderer, texture, nullptr, &destinationRect);
 
             SDL_FreeSurface(surface);
             SDL_DestroyTexture(texture);
         }
 
-        void TextCenter(float x, float y, char* text)
+        void TextCenter(float x, float y, const char* text)
         {
             auto surface = TTF_RenderText_Solid(_font, text, _color);
             auto texture = SDL_CreateTextureFromSurface(_renderer, surface);
 
             int width;
             int height;
-            SDL_QueryTexture(texture, NULL, NULL, &width, &height);
+            SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
 
             auto mappedPoint = WorldToScreen({x, y});
-            auto destinationRect = SDL_Rect { (int)mappedPoint.x - width/2, (int)mappedPoint.y - height/2,width,height };
-            SDL_RenderCopy(_renderer, texture, NULL, &destinationRect);
+            auto destinationRect = SDL_Rect { (int32_t)mappedPoint.x - width/2, (int32_t)mappedPoint.y - height/2,width,height };
+            SDL_RenderCopy(_renderer, texture, nullptr, &destinationRect);
 
             SDL_FreeSurface(surface);
             SDL_DestroyTexture(texture);

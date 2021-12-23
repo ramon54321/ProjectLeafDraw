@@ -13,6 +13,6 @@ namespace LeafDraw
         float xMax;
         float yMin;
         float yMax;
-        float fontSize;
+        float fontSize = 24;
     };
 }
